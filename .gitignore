@@ -1,0 +1,19 @@
+# Rust
+/contracts/target
+/contracts/wasm
+
+# Node
+node_modules/
+dist/
+.next/
+.env
+.env.local
+!.env.example
+!.env.local.example
+
+# Keys
+keys/
+*.pem
+
+# OS
+.DS_Store
