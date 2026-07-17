@@ -45,6 +45,25 @@ Autarca/
 
 See `contracts/README.md`, `agent/README.md`, and `frontend/README.md` for setup instructions for each subsystem.
 
+## CI/CD
+
+- **`.github/workflows/ci.yml`** — runs on every push/PR: `cargo fmt`/`clippy`/`test` for contracts, `npm run build`/`test` for the agent, and `npm run lint`/`build` for the frontend.
+- **`.github/workflows/deploy-testnet.yml`** — manually triggered (`workflow_dispatch`) workflow that builds the Odra WASM and deploys `AutarcaVault` to Casper Testnet using `scripts/deploy_testnet.sh`. Requires repo secrets: `CASPER_NODE_RPC_URL`, `DEPLOYER_SECRET_KEY`, `AGENT_PUBLIC_KEY_HEX`.
+
+## Manual Deployment
+
+```bash
+cd contracts && cargo odra build -b casper
+CASPER_NODE_RPC_URL=https://node.testnet.casper.network/rpc \
+DEPLOYER_SECRET_KEY="$(cat ~/keys/secret_key.pem)" \
+AGENT_PUBLIC_KEY_HEX=01... \
+  ../scripts/deploy_testnet.sh --wasm wasm/AutarcaVault.wasm --min-ratio-bps 15000
+
+# Once the deploy finalizes, resolve the contract hash:
+./scripts/get_contract_hash.sh <deploy-hash>
+# then set AUTARCA_CONTRACT_HASH in agent/.env and NEXT_PUBLIC_AUTARCA_CONTRACT_HASH in frontend/.env.local
+```
+
 ## Roadmap (Post-Buildathon)
 
 - Multi-asset support (real estate, T-bills, invoices, carbon credits)

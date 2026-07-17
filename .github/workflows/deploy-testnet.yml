@@ -1,0 +1,45 @@
+name: Deploy Contract to Casper Testnet
+
+on:
+  workflow_dispatch:
+    inputs:
+      min_collateral_ratio_bps:
+        description: "Minimum healthy collateralization ratio (bps, e.g. 15000 = 150%)"
+        required: true
+        default: "15000"
+
+jobs:
+  deploy:
+    name: Build & Deploy AutarcaVault
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: contracts
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Install cargo-odra
+        run: cargo install cargo-odra --locked
+
+      - name: Build WASM for Casper
+        run: cargo odra build -b casper
+
+      - name: Setup Node (for casper-client via npx)
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Deploy to Testnet
+        env:
+          CASPER_NODE_RPC_URL: ${{ secrets.CASPER_NODE_RPC_URL }}
+          DEPLOYER_SECRET_KEY: ${{ secrets.DEPLOYER_SECRET_KEY }}
+          AGENT_PUBLIC_KEY_HEX: ${{ secrets.AGENT_PUBLIC_KEY_HEX }}
+        run: |
+          bash ../scripts/deploy_testnet.sh \
+            --wasm wasm/AutarcaVault.wasm \
+            --min-ratio-bps "${{ github.event.inputs.min_collateral_ratio_bps }}"
