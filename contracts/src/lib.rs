@@ -4,14 +4,15 @@
 //! used as DeFi collateral on the Casper Network. The contract state is
 //! designed to be read via a Casper MCP Server by off-chain AI agents, and
 //! updated autonomously by the Autarca Execution Agent via CSPR.click.
+#![cfg_attr(target_arch = "wasm32", no_std)]
+
+#[cfg(target_arch = "wasm32")]
+extern crate alloc;
 
 use odra::prelude::*;
-use odra::Var;
-use odra::Mapping;
 
 /// Status of a collateral position, driven by the autonomous agent pipeline.
 #[odra::odra_type]
-#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum PositionStatus {
     Healthy,
     Warning,
@@ -21,7 +22,6 @@ pub enum PositionStatus {
 
 /// A single RWA-backed collateral position.
 #[odra::odra_type]
-#[derive(Debug, Clone)]
 pub struct Position {
     pub owner: Address,
     pub rwa_id: String,
@@ -192,7 +192,7 @@ mod tests {
         let test_env = odra_test::env();
         let agent_account = test_env.get_account(1);
 
-        let mut vault = AutarcaVaultHostRef::deploy(
+        let mut vault = AutarcaVault::deploy(
             &test_env,
             AutarcaVaultInitArgs {
                 agent: agent_account,
