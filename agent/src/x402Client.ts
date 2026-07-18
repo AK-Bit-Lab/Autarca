@@ -1,5 +1,5 @@
 import axios from "axios";
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { config } from "./config.js";
 import { activityLog } from "./activityLog.js";
 
@@ -81,7 +81,7 @@ export class X402Client {
         wallet: config.x402.walletAddress,
         requirements,
         resourceHash,
-        nonce: crypto.randomUUID(),
+        nonce: randomUUID(),
       }
     );
     return response.data as PaymentProof;
