@@ -23,6 +23,8 @@ export interface AgentDecision {
   positionId: number;
   action: "NOOP" | "UPDATE_VALUATION" | "LIQUIDATE";
   newCollateralValueUsdCents?: number;
+  /** Valuation source name, recorded on-chain for oracle reputation scoring. */
+  valuationSource?: string;
   reasoning: string;
 }
 

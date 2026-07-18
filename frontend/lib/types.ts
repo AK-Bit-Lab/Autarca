@@ -9,6 +9,23 @@ export interface Position {
   lastValuationTimestamp: number;
   status: PositionStatus;
   agentUpdates: number;
+  lastValuationSource?: string;
+}
+
+export interface OracleReputation {
+  source: string;
+  totalReports: number;
+  accurateReports: number;
+  accuracyBps: number;
+  lastUpdated: number;
+}
+
+export interface OnChainDeploy {
+  deployHash: string;
+  blockHash?: string;
+  timestamp?: string;
+  entryPoint?: string;
+  status?: string;
 }
 
 export interface ActivityLogEntry {

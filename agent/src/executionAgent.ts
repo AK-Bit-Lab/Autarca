@@ -1,9 +1,8 @@
 import fs from "node:fs";
 import {
-  CLPublicKey,
+  CasperClient,
   CLValueBuilder,
   Contracts,
-  DeployUtil,
   Keys,
   RuntimeArgs,
 } from "casper-js-sdk";
@@ -16,21 +15,55 @@ import type { AgentDecision } from "./types.js";
  * agent's own key (bound to CSPR.click's Agent Skill in production, using
  * casper-js-sdk directly here for a transparent, auditable reference
  * implementation of what CSPR.click does under the hood).
+ *
+ * This implementation BROADCASTS the signed deploy to the Casper node via
+ * `CasperClient.putDeploy` and then polls `getDeploy` until the deploy is
+ * finalized, returning the real on-chain deploy hash + block hash.
  */
 export class ExecutionAgent {
   private contractClient = new Contracts.Contract();
 
   private loadKeys(): Keys.AsymmetricKey {
     const pem = fs.readFileSync(config.agent.privateKeyPath, "utf-8");
-    return Keys.Secp256K1.parsePrivateKeyPem(pem) as unknown as Keys.AsymmetricKey;
+    // Casper secret_key.pem files are PEM-encoded; the SDK reads the raw
+    // base64 body. We support both the PEM file path and a raw key file.
+    try {
+      return Keys.Secp256K1.loadKeyPairFromPrivateFile(
+        config.agent.privateKeyPath
+      );
+    } catch {
+      // Fallback: parse the PEM body as Ed25519 (most Casper test keys).
+      const body = pem
+        .replace(/-----BEGIN[^-]+-----/, "")
+        .replace(/-----END[^-]+-----/, "")
+        .replace(/\s+/g, "");
+      const buf = Buffer.from(body, "base64");
+      return Keys.Ed25519.parseKeyPair(
+        Keys.Ed25519.privateToPublicKey(buf),
+        buf
+      );
+    }
   }
 
+  /**
+   * Submits a signed deploy to the node and waits for finalization.
+   * Returns the on-chain deploy hash (hex) or null on failure.
+   */
   async execute(decision: AgentDecision): Promise<string | null> {
     if (decision.action === "NOOP") {
       activityLog.push({
         timestamp: new Date().toISOString(),
         agent: "ExecutionAgent",
         message: `No on-chain action required for position #${decision.positionId}.`,
+      });
+      return null;
+    }
+
+    if (!config.casper.contractHash) {
+      activityLog.push({
+        timestamp: new Date().toISOString(),
+        agent: "ExecutionAgent",
+        message: `Cannot execute: AUTARCA_CONTRACT_HASH is not set. Deploy the contract first.`,
       });
       return null;
     }
@@ -52,8 +85,12 @@ export class ExecutionAgent {
               new_collateral_value_usd_cents: CLValueBuilder.u64(
                 decision.newCollateralValueUsdCents ?? 0
               ),
+              valuation_source: CLValueBuilder.string(
+                decision.valuationSource ?? "autarca-agent"
+              ),
             });
 
+      // Build the signed deploy.
       const deploy = this.contractClient.callEntrypoint(
         entryPoint,
         args,
@@ -63,17 +100,29 @@ export class ExecutionAgent {
         [keys]
       );
 
-      const deployHash = await DeployUtil.deployToJson(deploy);
-      const hash = (deployHash as any)?.deploy?.hash ?? "unknown";
+      // Actually broadcast to the node via JSON-RPC.
+      const casperClient = new CasperClient(config.casper.nodeRpcUrl);
+      const putDeployHash = await casperClient.putDeploy(deploy);
 
       activityLog.push({
         timestamp: new Date().toISOString(),
         agent: "ExecutionAgent",
-        message: `Submitted "${entryPoint}" for position #${decision.positionId} via CSPR.click signing flow. Deploy hash: ${hash}`,
-        meta: { entryPoint, deployHash: hash },
+        message: `Broadcast "${entryPoint}" for position #${decision.positionId} to ${config.casper.nodeRpcUrl}. Deploy hash: ${putDeployHash}`,
+        meta: { entryPoint, deployHash: putDeployHash },
       });
 
-      return hash;
+      // Wait for finalization so the dashboard can show a confirmed tx.
+      const finalized = await this.waitForDeploy(casperClient, putDeployHash);
+      if (finalized) {
+        activityLog.push({
+          timestamp: new Date().toISOString(),
+          agent: "ExecutionAgent",
+          message: `Deploy ${putDeployHash} finalized in block ${finalized.blockHash}.`,
+          meta: { deployHash: putDeployHash, blockHash: finalized.blockHash },
+        });
+      }
+
+      return putDeployHash;
     } catch (err) {
       activityLog.push({
         timestamp: new Date().toISOString(),
@@ -84,6 +133,31 @@ export class ExecutionAgent {
       });
       return null;
     }
+  }
+
+  /**
+   * Polls the node until the deploy is finalized or the timeout expires.
+   * Casper deploys are finalized after enough block confirmations.
+   */
+  private async waitForDeploy(
+    casperClient: CasperClient,
+    deployHash: string,
+    timeoutMs = 120_000
+  ): Promise<{ blockHash: string } | null> {
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+      try {
+        const [, result] = await casperClient.getDeploy(deployHash);
+        if (result?.execution_results?.length) {
+          const blockHash = result.execution_results[0]?.block_hash ?? "";
+          if (blockHash) return { blockHash };
+        }
+      } catch {
+        // deploy not yet known / not finalized — keep polling
+      }
+      await new Promise((r) => setTimeout(r, 5_000));
+    }
+    return null;
   }
 }
 

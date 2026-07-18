@@ -23,6 +23,13 @@ export const config = {
   mcp: {
     serverUrl: required("MCP_SERVER_URL", "http://localhost:4000"),
   },
+  csprCloud: {
+    apiUrl: required(
+      "CSPR_CLOUD_API_URL",
+      "https://api.testnet.cspr.cloud"
+    ),
+    apiKey: process.env.CSPR_CLOUD_API_KEY ?? "",
+  },
   x402: {
     facilitatorUrl: required("X402_FACILITATOR_URL", "https://x402.casper.network"),
     walletAddress: required("X402_WALLET_ADDRESS"),
@@ -34,7 +41,10 @@ export const config = {
     ),
   },
   llm: {
-    apiKey: required("OPENAI_API_KEY"),
-    model: required("OPENAI_MODEL", "gpt-4.1-mini"),
+    // Works with OpenAI, or any OpenAI-compatible provider (e.g. Groq,
+    // OpenRouter, local Ollama) by overriding LLM_BASE_URL + LLM_MODEL.
+    apiKey: required("LLM_API_KEY", process.env.OPENAI_API_KEY),
+    baseUrl: process.env.LLM_BASE_URL || undefined,
+    model: required("LLM_MODEL", process.env.OPENAI_MODEL || "llama-3.3-70b-versatile"),
   },
 };

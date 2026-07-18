@@ -1,58 +1,124 @@
 import OpenAI from "openai";
 import { config } from "./config.js";
 import { activityLog } from "./activityLog.js";
+import { reviewLiquidation } from "./riskAgent.js";
 import type { AgentDecision, OffChainValuation, OnChainPosition } from "./types.js";
 
-const client = config.llm.apiKey ? new OpenAI({ apiKey: config.llm.apiKey }) : null;
+const client = config.llm.apiKey
+  ? new OpenAI({ apiKey: config.llm.apiKey, baseURL: config.llm.baseUrl })
+  : null;
 
 /**
  * Decision Agent: reasons over on-chain position state + fresh off-chain
- * valuation to decide the next autonomous action. Uses an LLM when
- * configured, otherwise falls back to deterministic rule-based logic so the
- * demo always works end-to-end.
+ * valuation to decide the next autonomous action. Uses OpenAI tool/function
+ * calling where the available "tools" mirror the AutarcaVault contract entry
+ * points the agent is authorized to call. Falls back to deterministic
+ * rule-based logic when no LLM is configured so the demo always works.
+ *
+ * Any proposed LIQUIDATE is routed through the Risk Agent for a second
+ * opinion before being returned.
  */
 export async function decide(
   position: OnChainPosition,
   valuation: OffChainValuation
 ): Promise<AgentDecision> {
-  if (client) {
-    return decideWithLlm(position, valuation);
-  }
-  return decideWithRules(position, valuation);
+  const proposed = client
+    ? await decideWithLlm(position, valuation)
+    : decideWithRules(position, valuation);
+
+  // Multi-agent guardrail: never liquidate without the Risk Agent's sign-off.
+  return reviewLiquidation(position, valuation, proposed);
 }
+
+/**
+ * Tool definitions exposed to the LLM. These mirror the agent_* entry points
+ * of the AutarcaVault contract, so the model "calls" the contract the same way
+ * the Execution Agent will.
+ */
+const AGENT_TOOLS: OpenAI.Chat.Completions.ChatCompletionTool[] = [
+  {
+    type: "function",
+    function: {
+      name: "agent_update_valuation",
+      description:
+        "Update the on-chain collateral value of a position to a fresh fair-value estimate.",
+      parameters: {
+        type: "object",
+        properties: {
+          position_id: { type: "integer", description: "The position id" },
+          new_collateral_value_usd_cents: {
+            type: "integer",
+            description: "New fair value in USD cents",
+          },
+        },
+        required: ["position_id", "new_collateral_value_usd_cents"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "agent_liquidate",
+      description:
+        "Liquidate a position whose collateral ratio has fallen below the liquidation threshold. Use only when clearly warranted.",
+      parameters: {
+        type: "object",
+        properties: {
+          position_id: { type: "integer", description: "The position id" },
+        },
+        required: ["position_id"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "noop",
+      description: "Take no action this cycle.",
+      parameters: { type: "object", properties: {} },
+    },
+  },
+];
 
 async function decideWithLlm(
   position: OnChainPosition,
   valuation: OffChainValuation
 ): Promise<AgentDecision> {
-  const prompt = `You are the Decision Agent for Autarca, an autonomous RWA collateral manager on Casper.
-Given the on-chain position and fresh off-chain valuation below, decide one action:
-"NOOP", "UPDATE_VALUATION", or "LIQUIDATE".
-
-On-chain position: ${JSON.stringify(position)}
-Off-chain valuation: ${JSON.stringify(valuation)}
+  const system = `You are the Decision Agent for Autarca, an autonomous RWA collateral manager on Casper.
+You reason over the on-chain position and a fresh off-chain valuation, then call exactly one tool to choose the next action.
 
 Rules of thumb:
-- If the valuation differs from on-chain value by more than 2%, UPDATE_VALUATION.
-- If collateral/debt ratio would fall below 120% after the update, LIQUIDATE instead.
-- Otherwise NOOP.
+- If the valuation differs from the on-chain collateral value by more than 2%, call agent_update_valuation with the new fair value.
+- If the projected collateral/debt ratio would fall below 120% after the update, call agent_liquidate instead.
+- Otherwise call noop.`;
 
-Respond ONLY with strict JSON: {"action": "...", "newCollateralValueUsdCents": number|null, "reasoning": "..."}`;
+  const user = `On-chain position: ${JSON.stringify(position)}
+Off-chain valuation: ${JSON.stringify(valuation)}`;
 
   const completion = await client!.chat.completions.create({
     model: config.llm.model,
-    messages: [{ role: "user", content: prompt }],
-    response_format: { type: "json_object" },
+    messages: [
+      { role: "system", content: system },
+      { role: "user", content: user },
+    ],
+    tools: AGENT_TOOLS,
+    tool_choice: "required",
   });
 
-  const parsed = JSON.parse(completion.choices[0].message.content ?? "{}");
+  const choice = completion.choices[0];
+  const toolCall = choice.message.tool_calls?.[0];
 
-  const decision: AgentDecision = {
-    positionId: position.id,
-    action: parsed.action ?? "NOOP",
-    newCollateralValueUsdCents: parsed.newCollateralValueUsdCents ?? undefined,
-    reasoning: parsed.reasoning ?? "No reasoning provided by LLM.",
-  };
+  let decision: AgentDecision;
+  if (toolCall) {
+    const args = JSON.parse(toolCall.function.arguments ?? "{}");
+    decision = toolCallToDecision(position.id, toolCall.function.name, args);
+  } else {
+    decision = {
+      positionId: position.id,
+      action: "NOOP",
+      reasoning: "LLM returned no tool call; defaulting to NOOP.",
+    };
+  }
 
   activityLog.push({
     timestamp: new Date().toISOString(),
@@ -61,6 +127,34 @@ Respond ONLY with strict JSON: {"action": "...", "newCollateralValueUsdCents": n
   });
 
   return decision;
+}
+
+function toolCallToDecision(
+  positionId: number,
+  toolName: string,
+  args: Record<string, unknown>
+): AgentDecision {
+  switch (toolName) {
+    case "agent_update_valuation":
+      return {
+        positionId,
+        action: "UPDATE_VALUATION",
+        newCollateralValueUsdCents: Number(args.new_collateral_value_usd_cents),
+        reasoning: `LLM called agent_update_valuation with new value ${args.new_collateral_value_usd_cents} cents.`,
+      };
+    case "agent_liquidate":
+      return {
+        positionId,
+        action: "LIQUIDATE",
+        reasoning: "LLM called agent_liquidate — projected ratio below threshold.",
+      };
+    default:
+      return {
+        positionId,
+        action: "NOOP",
+        reasoning: "LLM called noop — within tolerance.",
+      };
+  }
 }
 
 function decideWithRules(

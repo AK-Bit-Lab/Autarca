@@ -26,6 +26,9 @@ async function runPipelineOnce() {
 
       const valuation = await fetchOffChainValuation(position.rwaId);
       const decision = await decide(position, valuation);
+      // Attach the valuation source so the Execution Agent records it on-chain
+      // for oracle reputation scoring.
+      decision.valuationSource = valuation.source;
       await executionAgent.execute(decision);
     } catch (err) {
       activityLog.push({

@@ -18,11 +18,13 @@ set -euo pipefail
 
 WASM_PATH=""
 MIN_RATIO_BPS="15000"
+ACCURACY_TOLERANCE_BPS="200"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --wasm) WASM_PATH="$2"; shift 2 ;;
     --min-ratio-bps) MIN_RATIO_BPS="$2"; shift 2 ;;
+    --accuracy-tolerance-bps) ACCURACY_TOLERANCE_BPS="$2"; shift 2 ;;
     *) echo "Unknown argument: $1"; exit 1 ;;
   esac
 done
@@ -55,7 +57,8 @@ casper-client put-deploy \
   --payment-amount 200000000000 \
   --session-path "$WASM_PATH" \
   --session-arg "agent:public_key='$AGENT_PUBLIC_KEY_HEX'" \
-  --session-arg "min_collateral_ratio_bps:u64='$MIN_RATIO_BPS'"
+  --session-arg "min_collateral_ratio_bps:u64='$MIN_RATIO_BPS'" \
+  --session-arg "accuracy_tolerance_bps:u64='$ACCURACY_TOLERANCE_BPS'"
 
 echo "==> Deploy submitted. Track it on https://testnet.cspr.live"
 echo "==> Once confirmed, set AUTARCA_CONTRACT_HASH in agent/.env and frontend/.env.local"

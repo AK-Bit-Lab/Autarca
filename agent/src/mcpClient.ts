@@ -1,23 +1,72 @@
 import axios from "axios";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { config } from "./config.js";
 import { activityLog } from "./activityLog.js";
 import type { OnChainPosition } from "./types.js";
 
 /**
- * Client for the Casper MCP Server, which exposes Casper smart contract
- * state (and query tools) to the AI agent via the Model Context Protocol.
+ * Spec-compliant client for the Casper MCP Server.
  *
- * This client wraps MCP "tools/call" invocations for the specific tools the
- * Casper MCP Server exposes for reading contract state
- * (see https://www.casper.network/ai for the official MCP server).
+ * Speaks the Model Context Protocol over HTTP: performs the `initialize`
+ * handshake, discovers available tools via `tools/list`, and invokes
+ * `tools/call` for reading AutarcaVault contract state. Falls back to a
+ * direct CSPR.cloud REST query if the MCP server is unreachable so the
+ * pipeline still runs end-to-end during local development.
+ *
+ * See https://www.casper.network/ai for the official Casper MCP server.
  */
 export class McpClient {
-  private async callTool<T>(toolName: string, args: Record<string, unknown>): Promise<T> {
-    const response = await axios.post(`${config.mcp.serverUrl}/tools/call`, {
-      name: toolName,
-      arguments: args,
-    });
-    return response.data.result as T;
+  private client: Client | null = null;
+  private initialized = false;
+  private toolNames: Set<string> = new Set();
+
+  private async ensureConnected(): Promise<Client | null> {
+    if (this.initialized && this.client) return this.client;
+
+    try {
+      const transport = new StreamableHTTPClientTransport(
+        new URL(config.mcp.serverUrl)
+      );
+      const client = new Client(
+        { name: "autarca-agent", version: "0.1.0" },
+        { capabilities: {} }
+      );
+      await client.connect(transport);
+
+      const toolsList = await client.listTools();
+      this.toolNames = new Set(toolsList.tools.map((t: { name: string }) => t.name));
+
+      activityLog.push({
+        timestamp: new Date().toISOString(),
+        agent: "ChainStateAgent",
+        message: `Connected to Casper MCP Server at ${config.mcp.serverUrl}; discovered ${this.toolNames.size} tools.`,
+      });
+
+      this.client = client;
+      this.initialized = true;
+      return client;
+    } catch (err) {
+      activityLog.push({
+        timestamp: new Date().toISOString(),
+        agent: "ChainStateAgent",
+        message: `MCP server unavailable (${(err as Error).message}); falling back to CSPR.cloud REST for contract reads.`,
+      });
+      this.initialized = true; // don't retry every call
+      return null;
+    }
+  }
+
+  private async callTool<T>(
+    toolName: string,
+    args: Record<string, unknown>
+  ): Promise<T> {
+    const client = await this.ensureConnected();
+    if (!client || !this.toolNames.has(toolName)) {
+      throw new Error(`MCP tool "${toolName}" not available`);
+    }
+    const result = await client.callTool({ name: toolName, arguments: args });
+    return result.content as unknown as T;
   }
 
   async getPosition(positionId: number): Promise<OnChainPosition> {
@@ -25,7 +74,7 @@ export class McpClient {
       contractHash: config.casper.contractHash,
       entryPoint: "get_position",
       args: { position_id: positionId },
-    });
+    }).catch(() => this.fallbackGetPosition(positionId));
 
     const position: OnChainPosition = {
       id: positionId,
@@ -48,12 +97,41 @@ export class McpClient {
   }
 
   async getPositionCount(): Promise<number> {
-    const raw = await this.callTool<any>("casper.query_contract_dictionary", {
-      contractHash: config.casper.contractHash,
-      entryPoint: "get_position_count",
-      args: {},
-    });
+    const raw = await this.callTool<any>(
+      "casper.query_contract_dictionary",
+      {
+        contractHash: config.casper.contractHash,
+        entryPoint: "get_position_count",
+        args: {},
+      }
+    ).catch(() => this.fallbackGetPositionCount());
     return Number(raw);
+  }
+
+  /** CSPR.cloud REST fallback used when the MCP server is not running. */
+  private async fallbackGetPosition(positionId: number): Promise<any> {
+    const base = config.csprCloud.apiUrl;
+    const url = `${base}/contracts/${config.casper.contractHash}/state`;
+    const res = await axios.get(url, {
+      headers: config.csprCloud.apiKey
+        ? { Authorization: `Bearer ${config.csprCloud.apiKey}` }
+        : {},
+    });
+    const positions = res.data?.data ?? [];
+    const found = positions.find((p: any) => Number(p.id) === positionId);
+    if (!found) throw new Error(`Position #${positionId} not found`);
+    return found;
+  }
+
+  private async fallbackGetPositionCount(): Promise<number> {
+    const base = config.csprCloud.apiUrl;
+    const url = `${base}/contracts/${config.casper.contractHash}/state`;
+    const res = await axios.get(url, {
+      headers: config.csprCloud.apiKey
+        ? { Authorization: `Bearer ${config.csprCloud.apiKey}` }
+        : {},
+    });
+    return Number(res.data?.data?.length ?? 0);
   }
 }
 
