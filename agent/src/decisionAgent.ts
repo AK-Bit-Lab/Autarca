@@ -13,11 +13,11 @@ import type {
 
 const client = config.llm.apiKey
   ? new OpenAI({
-      apiKey: config.llm.apiKey,
-      baseURL: config.llm.baseUrl,
-      timeout: 20_000,
-      maxRetries: 2,
-    })
+    apiKey: config.llm.apiKey,
+    baseURL: config.llm.baseUrl,
+    timeout: 20_000,
+    maxRetries: 2,
+  })
   : null;
 
 /**
@@ -46,13 +46,13 @@ export async function decide(
 
   const proposed = client
     ? await decideWithLlm(position, valuation, memory).catch((err) => {
-        activityLog.push({
-          timestamp: new Date().toISOString(),
-          agent: "DecisionAgent",
-          message: `LLM decision failed (${(err as Error).message}); falling back to rule engine.`,
-        });
-        return decideWithRules(position, valuation, memory);
-      })
+      activityLog.push({
+        timestamp: new Date().toISOString(),
+        agent: "DecisionAgent",
+        message: `LLM decision failed (${(err as Error).message}); falling back to rule engine.`,
+      });
+      return decideWithRules(position, valuation, memory);
+    })
     : decideWithRules(position, valuation, memory);
 
   // Multi-agent guardrail: never liquidate without the Risk Agent's sign-off.
@@ -118,6 +118,24 @@ const AGENT_TOOLS: OpenAI.Chat.Completions.ChatCompletionTool[] = [
   {
     type: "function",
     function: {
+      name: "agent_allocate_yield",
+      description:
+        "Allocate excess collateral to yield-bearing protocols when ratio is very high (e.g. > 200%).",
+      parameters: {
+        type: "object",
+        properties: {
+          position_id: { type: "integer", description: "The position id" },
+          amount_usd_cents: { type: "integer", description: "Amount of collateral to allocate out" },
+          confidence: { type: "number", description: "Your confidence, 0..1" },
+          reasoning: { type: "string" },
+        },
+        required: ["position_id", "amount_usd_cents", "confidence", "reasoning"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "noop",
       description: "Take no action this cycle.",
       parameters: {
@@ -150,6 +168,7 @@ You reason over the on-chain position, a fresh off-chain valuation, AND the agen
 Rules of thumb:
 - If the valuation differs from the on-chain collateral value by more than 2%, call agent_update_valuation with the new fair value.
 - If the projected collateral/debt ratio would fall below 120% after the update, call agent_liquidate instead.
+- If the projected collateral/debt ratio is safely above 200% (20_000 bps), call agent_allocate_yield to deploy up to 10% of excess collateral into yield strategies.
 - Otherwise call noop.
 - Factor in volatility and trend from memory: high volatility + low confidence => prefer noop or update over liquidate.
 - Avoid repeated liquidations in a short window (recentLiquidations).
@@ -243,8 +262,10 @@ function toolCallToDecision(
     toolName === "agent_update_valuation"
       ? "UPDATE_VALUATION"
       : toolName === "agent_liquidate"
-      ? "LIQUIDATE"
-      : "NOOP";
+        ? "LIQUIDATE"
+        : toolName === "agent_allocate_yield"
+          ? "ALLOCATE_YIELD"
+          : "NOOP";
   const alternativesConsidered = ALL_ACTIONS.filter((a) => a !== chosen);
 
   switch (toolName) {
@@ -262,6 +283,16 @@ function toolCallToDecision(
       return {
         positionId,
         action: "LIQUIDATE",
+        reasoning,
+        confidence,
+        alternativesConsidered,
+        decidedBy: "DecisionAgent",
+      };
+    case "agent_allocate_yield":
+      return {
+        positionId,
+        action: "ALLOCATE_YIELD",
+        yieldAmountUsdCents: Number(args.amount_usd_cents) || 0,
         reasoning,
         confidence,
         alternativesConsidered,
@@ -300,7 +331,18 @@ function decideWithRules(
 
   let decision: AgentDecision;
 
-  if (drift < 0.02) {
+  if (ratioBps > 20_000) {
+    const amountToAllocate = Math.floor(position.collateralValueUsdCents * 0.05);
+    decision = {
+      positionId: position.id,
+      action: "ALLOCATE_YIELD",
+      yieldAmountUsdCents: amountToAllocate,
+      reasoning: `Projected ratio ${(ratioBps / 100).toFixed(1)}% is highly overcollateralized. Allocating ${amountToAllocate} cents to yield strategies.`,
+      confidence: clamp01(confidence),
+      alternativesConsidered: ["NOOP", "UPDATE_VALUATION"],
+      decidedBy: "RuleEngine",
+    };
+  } else if (drift < 0.02) {
     decision = {
       positionId: position.id,
       action: "NOOP",

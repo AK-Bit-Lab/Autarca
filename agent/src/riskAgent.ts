@@ -11,11 +11,11 @@ import type {
 
 const client = config.llm.apiKey
   ? new OpenAI({
-      apiKey: config.llm.apiKey,
-      baseURL: config.llm.baseUrl,
-      timeout: 20_000,
-      maxRetries: 2,
-    })
+    apiKey: config.llm.apiKey,
+    baseURL: config.llm.baseUrl,
+    timeout: 20_000,
+    maxRetries: 2,
+  })
   : null;
 
 /**
@@ -55,12 +55,50 @@ export async function reviewLiquidation(
   if (proposed.action !== "LIQUIDATE") return proposed;
 
   if (client) {
-    return reviewWithLlm(position, valuation, proposed, memory, oracleAccuracyBps);
+    return reviewWithSwarmLlm(position, valuation, proposed, memory, oracleAccuracyBps);
   }
   return reviewWithRules(position, valuation, proposed, memory, oracleAccuracyBps);
 }
 
-async function reviewWithLlm(
+async function runSwarmAgent(
+  persona: string,
+  systemPrompt: string,
+  userPrompt: string
+): Promise<{ confirm: boolean; reasoning: string }> {
+  const completion = await withRetry(
+    () =>
+      client!.chat.completions.create({
+        model: config.llm.model,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ],
+        response_format: { type: "json_object" },
+      }),
+    {
+      retries: 2,
+      baseDelayMs: 800,
+      onRetry: (attempt, err, delay) =>
+        activityLog.push({
+          timestamp: new Date().toISOString(),
+          agent: "RiskAgent",
+          message: `Swarm ${persona} retry #${attempt} in ${delay}ms (${err.message}).`,
+        }),
+    }
+  );
+
+  const parsed = safeJsonParse<{ confirm?: unknown; reasoning?: unknown }>(
+    completion.choices[0].message.content,
+    { confirm: false, reasoning: `Swarm ${persona} returned no parseable JSON; vetoing by default.` }
+  );
+
+  return {
+    confirm: parsed.confirm === true,
+    reasoning: typeof parsed.reasoning === "string" ? parsed.reasoning : "no reasoning",
+  };
+}
+
+async function reviewWithSwarmLlm(
   position: OnChainPosition,
   valuation: OffChainValuation,
   proposed: AgentDecision,
@@ -72,79 +110,42 @@ async function reviewWithLlm(
   },
   oracleAccuracyBps?: number
 ): Promise<AgentDecision> {
-  const prompt = `You are the Risk Agent for Autarca. The Decision Agent proposed LIQUIDATING the position below.
-Independently assess whether liquidation is warranted, or whether the position should merely be re-valued (UPDATE_VALUATION) instead.
+  const user = `On-chain position: ${JSON.stringify(position)}\nOff-chain valuation: ${JSON.stringify(valuation)}\nDecision Agent confidence: ${proposed.confidence}\nValuation source confidence: ${valuation.confidence}\nOracle accuracy: ${oracleAccuracyBps}\nMemory (volatility: ${memory.volatility}, trend: ${memory.trend}, recentLiqs: ${memory.recentLiquidations})`;
 
-On-chain position: ${JSON.stringify(position)}
-Off-chain valuation: ${JSON.stringify(valuation)}
-Decision Agent confidence: ${proposed.confidence ?? "unknown"}
-Valuation source confidence: ${valuation.confidence}
-Valuation source on-chain oracle accuracy: ${oracleAccuracyBps !== undefined ? `${(oracleAccuracyBps / 100).toFixed(1)}%` : "unknown"}
+  const prompts = {
+    Liquidity: `You are the Liquidity Risk Agent. Assess if the market has enough liquidity to absorb this liquidation without causing a cascade. Focus on recentLiquidations (if >= 3, veto). Respond ONLY with strict JSON: {"confirm": true|false, "reasoning": "..."}`,
+    Volatility: `You are the Volatility Risk Agent. Assess if the price is violently swinging, meaning a liquidation might be a false flag. Focus on the volatility metric (if > 0.15, veto). Respond ONLY with strict JSON: {"confirm": true|false, "reasoning": "..."}`,
+    Counterparty: `You are the Counterparty Risk Agent. Assess if the oracle can be trusted for this liquidation. Focus on oracle accuracy (if < 8000 bps, veto) and valuation confidence (if < 0.7, veto). Respond ONLY with strict JSON: {"confirm": true|false, "reasoning": "..."}`
+  };
 
-Agent memory:
-- volatility (coefficient of variation of recent valuations): ${memory.volatility.toFixed(3)}
-- trend (relative change over recent window): ${(memory.trend * 100).toFixed(2)}%
-- recentLiquidations (last 30m): ${memory.recentLiquidations}
-- previousDecision: ${memory.previousDecision ? JSON.stringify({
-    action: memory.previousDecision.action,
-    outcome: memory.previousDecision.outcome,
-  }) : "none"}
+  const [liq, vol, cp] = await Promise.all([
+    runSwarmAgent("Liquidity", prompts.Liquidity, user),
+    runSwarmAgent("Volatility", prompts.Volatility, user),
+    runSwarmAgent("Counterparty", prompts.Counterparty, user),
+  ]);
 
-Consider ALL of the following before deciding:
-- If valuation source confidence is below 0.7, a liquidation may be premature — prefer UPDATE_VALUATION and re-check next cycle.
-- If volatility is high (>0.15), the valuation is unstable — prefer UPDATE_VALUATION unless the ratio is critically low.
-- If the oracle's on-chain accuracy is below 80%, treat its valuation with skepticism.
-- If recentLiquidations is high (>=3 in 30m), the market may be stressed — require higher confidence to liquidate.
-- If the previous decision for this position was "harmful", be extra cautious.
+  const confirmations = [liq.confirm, vol.confirm, cp.confirm].filter(c => c).length;
+  const confirmed = confirmations >= 2;
 
-Respond ONLY with strict JSON: {"confirm": true|false, "reasoning": "..."}`;
-
-  const completion = await withRetry(
-    () =>
-      client!.chat.completions.create({
-        model: config.llm.model,
-        messages: [{ role: "user", content: prompt }],
-        response_format: { type: "json_object" },
-      }),
-    {
-      retries: 2,
-      baseDelayMs: 800,
-      onRetry: (attempt, err, delay) =>
-        activityLog.push({
-          timestamp: new Date().toISOString(),
-          agent: "RiskAgent",
-          message: `LLM call retry #${attempt} in ${delay}ms (${err.message}).`,
-        }),
-    }
-  );
-
-  const parsed = safeJsonParse<{ confirm?: unknown; reasoning?: unknown }>(
-    completion.choices[0].message.content,
-    { confirm: false, reasoning: "Risk Agent LLM returned no parseable JSON; vetoing by default." }
-  );
-  const confirmed = parsed.confirm === true;
-  const reasoning =
-    typeof parsed.reasoning === "string" && parsed.reasoning.trim()
-      ? parsed.reasoning
-      : "no reasoning provided";
+  const swarmReason = `[Liq: ${liq.confirm ? 'Y' : 'N'}] ${liq.reasoning}. [Vol: ${vol.confirm ? 'Y' : 'N'}] ${vol.reasoning}. [CP: ${cp.confirm ? 'Y' : 'N'}] ${cp.reasoning}.`;
 
   const decision: AgentDecision = confirmed
-    ? { ...proposed, reasoning: `Risk Agent confirmed liquidation: ${reasoning}` }
+    ? { ...proposed, reasoning: `Risk Swarm confirmed liquidation (${confirmations}/3 votes): ${swarmReason}` }
     : {
-        positionId: position.id,
-        action: "UPDATE_VALUATION",
-        newCollateralValueUsdCents: valuation.fairValueUsdCents,
-        reasoning: `Risk Agent vetoed liquidation: ${reasoning}. Downgrading to UPDATE_VALUATION.`,
-        confidence: proposed.confidence,
-        alternativesConsidered: ["NOOP", "LIQUIDATE"],
-        decidedBy: proposed.decidedBy,
-      };
+      positionId: position.id,
+      action: "UPDATE_VALUATION",
+      newCollateralValueUsdCents: valuation.fairValueUsdCents,
+      reasoning: `Risk Swarm vetoed liquidation (${3 - confirmations}/3 veto votes): ${swarmReason}. Downgrading to UPDATE_VALUATION.`,
+      confidence: proposed.confidence,
+      alternativesConsidered: ["NOOP", "LIQUIDATE"],
+      decidedBy: proposed.decidedBy,
+    };
 
   activityLog.push({
     timestamp: new Date().toISOString(),
     agent: "RiskAgent",
-    message: `Risk Agent ${confirmed ? "confirmed" : "vetoed"} liquidation for position #${position.id}: ${reasoning}`,
-    meta: { confirmed, reasoning },
+    message: `Risk Swarm ${confirmed ? "confirmed" : "vetoed"} liquidation (${confirmations}/3 votes) for position #${position.id}.`,
+    meta: { confirmations, swarmReason },
   });
 
   return decision;

@@ -3,10 +3,11 @@
 import { useAgentFeed } from "@/lib/useAgentFeed";
 import type { AgentAction, DecisionRecord } from "@/lib/types";
 
-const ACTION_STYLES: Record<AgentAction, { dot: string; label: string; text: string }> = {
+const ACTION_STYLES: Record<string, { dot: string; label: string; text: string }> = {
   NOOP: { dot: "bg-gray-500", label: "NOOP", text: "text-gray-400" },
   UPDATE_VALUATION: { dot: "bg-autarca-accent", label: "UPDATE", text: "text-autarca-accent" },
   LIQUIDATE: { dot: "bg-autarca-danger", label: "LIQUIDATE", text: "text-autarca-danger" },
+  ALLOCATE_YIELD: { dot: "bg-emerald-500", label: "YIELD", text: "text-emerald-400" },
 };
 
 const OUTCOME_STYLES: Record<string, string> = {
@@ -107,7 +108,13 @@ function TimelineEntry({ d }: { d: DecisionRecord }) {
             <span className="font-semibold">{usd(d.newCollateralValueUsdCents)}</span>
           </span>
           <span className="text-gray-500"> · ratio {pct(d.collateralRatioBps)}</span>
-          <span className="text-gray-500"> · oracle {d.valuationSource}</span>
+          <span className="text-gray-500">
+            {" "}· oracle{" "}
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] uppercase font-bold bg-purple-500/20 text-purple-400 border border-purple-500/30 shadow-[0_0_8px_rgba(168,85,247,0.4)] relative -top-[1px]">
+              💸 x402
+            </span>{" "}
+            {d.valuationSource}
+          </span>
           <span className="text-gray-500">
             {" "}· conf {pct(Math.round(d.valuationConfidence * 10000))}
           </span>

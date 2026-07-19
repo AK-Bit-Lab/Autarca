@@ -98,7 +98,7 @@ class AgentMemory {
     // close to the now-observed fair value.
     const valAccurate =
       Math.abs(prev.newCollateralValueUsdCents - valuation.fairValueUsdCents) /
-        Math.max(1, valuation.fairValueUsdCents) <
+      Math.max(1, valuation.fairValueUsdCents) <
       0.05;
     this.bumpReputation("ValuationAgent", valAccurate);
   }
@@ -190,4 +190,4 @@ export const agentMemory = new AgentMemory();
 
 /** Convenience: the set of actions the Decision Agent should list as
  *  "alternatives considered" in its structured output. */
-export const ALL_ACTIONS: AgentAction[] = ["NOOP", "UPDATE_VALUATION", "LIQUIDATE"];
+export const ALL_ACTIONS: AgentAction[] = ["NOOP", "UPDATE_VALUATION", "LIQUIDATE", "ALLOCATE_YIELD"];

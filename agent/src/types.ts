@@ -19,12 +19,13 @@ export interface OffChainValuation {
   fetchedAt: string;
 }
 
-export type AgentAction = "NOOP" | "UPDATE_VALUATION" | "LIQUIDATE";
+export type AgentAction = "NOOP" | "UPDATE_VALUATION" | "LIQUIDATE" | "ALLOCATE_YIELD";
 
 export interface AgentDecision {
   positionId: number;
   action: AgentAction;
   newCollateralValueUsdCents?: number;
+  yieldAmountUsdCents?: number;
   /** Valuation source name, recorded on-chain for oracle reputation scoring. */
   valuationSource?: string;
   reasoning: string;

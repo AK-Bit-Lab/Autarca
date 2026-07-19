@@ -170,6 +170,21 @@ impl AutarcaVault {
         self.positions.set(&position_id, position);
     }
 
+    /// Called autonomously by the agent to allocate excess collateral out to yield protocols.
+    pub fn agent_allocate_yield(&mut self, position_id: u64, amount_usd_cents: u64) {
+        self.assert_agent();
+        let mut position = self.get_position_or_revert(position_id);
+
+        if position.collateral_value_usd_cents < amount_usd_cents {
+            self.env().revert(VaultError::InvalidValuation);
+        }
+
+        position.collateral_value_usd_cents -= amount_usd_cents;
+        position.agent_updates += 1;
+        position.status = self.compute_status(&position);
+        self.positions.set(&position_id, position);
+    }
+
     /// Updates the authorized agent address (owner only). Supports agent key rotation.
     pub fn set_agent(&mut self, new_agent: Address) {
         self.assert_owner();

@@ -71,23 +71,31 @@ export class ExecutionAgent {
       const keys = this.loadKeys();
       this.contractClient.setContractHash(config.casper.contractHash);
 
-      const entryPoint =
-        decision.action === "LIQUIDATE" ? "agent_liquidate" : "agent_update_valuation";
+      let entryPoint = "agent_update_valuation";
+      if (decision.action === "LIQUIDATE") entryPoint = "agent_liquidate";
+      if (decision.action === "ALLOCATE_YIELD") entryPoint = "agent_allocate_yield";
 
-      const args =
-        decision.action === "LIQUIDATE"
-          ? RuntimeArgs.fromMap({
-              position_id: CLValueBuilder.u64(decision.positionId),
-            })
-          : RuntimeArgs.fromMap({
-              position_id: CLValueBuilder.u64(decision.positionId),
-              new_collateral_value_usd_cents: CLValueBuilder.u64(
-                decision.newCollateralValueUsdCents ?? 0
-              ),
-              valuation_source: CLValueBuilder.string(
-                decision.valuationSource ?? "autarca-agent"
-              ),
-            });
+      let args: RuntimeArgs;
+      if (decision.action === "LIQUIDATE") {
+        args = RuntimeArgs.fromMap({
+          position_id: CLValueBuilder.u64(decision.positionId),
+        });
+      } else if (decision.action === "ALLOCATE_YIELD") {
+        args = RuntimeArgs.fromMap({
+          position_id: CLValueBuilder.u64(decision.positionId),
+          amount_usd_cents: CLValueBuilder.u64(decision.yieldAmountUsdCents ?? 0),
+        });
+      } else {
+        args = RuntimeArgs.fromMap({
+          position_id: CLValueBuilder.u64(decision.positionId),
+          new_collateral_value_usd_cents: CLValueBuilder.u64(
+            decision.newCollateralValueUsdCents ?? 0
+          ),
+          valuation_source: CLValueBuilder.string(
+            decision.valuationSource ?? "autarca-agent"
+          ),
+        });
+      }
 
       // Build the signed deploy.
       const deploy = this.contractClient.callEntrypoint(
@@ -126,9 +134,8 @@ export class ExecutionAgent {
       activityLog.push({
         timestamp: new Date().toISOString(),
         agent: "ExecutionAgent",
-        message: `Failed to execute "${decision.action}" for position #${decision.positionId}: ${
-          (err as Error).message
-        }`,
+        message: `Failed to execute "${decision.action}" for position #${decision.positionId}: ${(err as Error).message
+          }`,
       });
       return null;
     }

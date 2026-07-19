@@ -45,6 +45,11 @@ export default function ActivityFeed() {
                 {new Date(entry.timestamp).toLocaleTimeString()}{" "}
               </span>
               <span className={AGENT_COLORS[entry.agent]}>[{entry.agent}]</span>{" "}
+              {entry.agent === "ValuationAgent" && (
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] uppercase font-bold bg-purple-500/20 text-purple-400 border border-purple-500/50 animate-pulse mr-2 shadow-[0_0_8px_rgba(168,85,247,0.4)]">
+                  💸 0.05 CSPR via x402
+                </span>
+              )}
               <span className="text-gray-200">{entry.message}</span>
             </li>
           ))}
