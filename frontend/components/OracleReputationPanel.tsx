@@ -4,7 +4,11 @@ import { useEffect, useState } from "react";
 import { getOracleReputation } from "@/lib/csprCloud";
 import type { OracleReputation } from "@/lib/types";
 
-const KNOWN_SOURCES = ["chainlink-rwa", "simulated-fallback", "autarca-agent"];
+const KNOWN_SOURCES = (process.env.NEXT_PUBLIC_KNOWN_SOURCES?.split(",") ?? [
+  "autarca-agent",
+  "chainlink-rwa",
+  "simulated-fallback",
+]).map((s) => s.trim());
 
 export default function OracleReputationPanel() {
   const [reps, setReps] = useState<OracleReputation[]>([]);

@@ -42,4 +42,5 @@ jobs:
         run: |
           bash ../scripts/deploy_testnet.sh \
             --wasm wasm/AutarcaVault.wasm \
-            --min-ratio-bps "${{ github.event.inputs.min_collateral_ratio_bps }}"
+            --min-ratio-bps "${{ github.event.inputs.min_collateral_ratio_bps }}" \
+            --accuracy-tolerance-bps 200

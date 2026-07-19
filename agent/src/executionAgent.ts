@@ -25,14 +25,8 @@ export class ExecutionAgent {
 
   private loadKeys(): Keys.AsymmetricKey {
     const pem = fs.readFileSync(config.agent.privateKeyPath, "utf-8");
-    // Casper secret_key.pem files are PEM-encoded; the SDK reads the raw
-    // base64 body. We support both the PEM file path and a raw key file.
+    // Prefer Ed25519 (most Casper test keys). If parsing fails, fall back to Secp256K1.
     try {
-      return Keys.Secp256K1.loadKeyPairFromPrivateFile(
-        config.agent.privateKeyPath
-      );
-    } catch {
-      // Fallback: parse the PEM body as Ed25519 (most Casper test keys).
       const body = pem
         .replace(/-----BEGIN[^-]+-----/, "")
         .replace(/-----END[^-]+-----/, "")
@@ -41,6 +35,11 @@ export class ExecutionAgent {
       return Keys.Ed25519.parseKeyPair(
         Keys.Ed25519.privateToPublicKey(buf),
         buf
+      );
+    } catch {
+      // Fallback to Secp256K1 if Ed25519 parsing fails.
+      return Keys.Secp256K1.loadKeyPairFromPrivateFile(
+        config.agent.privateKeyPath
       );
     }
   }
