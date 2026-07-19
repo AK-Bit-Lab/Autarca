@@ -3,7 +3,10 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { config } from "./config.js";
 import { activityLog } from "./activityLog.js";
+import { withRetry } from "./resilience.js";
 import type { OnChainPosition } from "./types.js";
+
+const HTTP_TIMEOUT_MS = 15_000;
 
 /**
  * Spec-compliant client for the Casper MCP Server.
@@ -112,11 +115,16 @@ export class McpClient {
   private async fallbackGetPosition(positionId: number): Promise<any> {
     const base = config.csprCloud.apiUrl;
     const url = `${base}/contracts/${config.casper.contractHash}/state`;
-    const res = await axios.get(url, {
-      headers: config.csprCloud.apiKey
-        ? { Authorization: `Bearer ${config.csprCloud.apiKey}` }
-        : {},
-    });
+    const res = await withRetry(
+      () =>
+        axios.get(url, {
+          headers: config.csprCloud.apiKey
+            ? { Authorization: `Bearer ${config.csprCloud.apiKey}` }
+            : {},
+          timeout: HTTP_TIMEOUT_MS,
+        }),
+      { retries: 2, baseDelayMs: 600 }
+    );
     const positions = res.data?.data ?? [];
     const found = positions.find((p: any) => Number(p.id) === positionId);
     if (!found) throw new Error(`Position #${positionId} not found`);
@@ -126,11 +134,16 @@ export class McpClient {
   private async fallbackGetPositionCount(): Promise<number> {
     const base = config.csprCloud.apiUrl;
     const url = `${base}/contracts/${config.casper.contractHash}/state`;
-    const res = await axios.get(url, {
-      headers: config.csprCloud.apiKey
-        ? { Authorization: `Bearer ${config.csprCloud.apiKey}` }
-        : {},
-    });
+    const res = await withRetry(
+      () =>
+        axios.get(url, {
+          headers: config.csprCloud.apiKey
+            ? { Authorization: `Bearer ${config.csprCloud.apiKey}` }
+            : {},
+          timeout: HTTP_TIMEOUT_MS,
+        }),
+      { retries: 2, baseDelayMs: 600 }
+    );
     return Number(res.data?.data?.length ?? 0);
   }
 }

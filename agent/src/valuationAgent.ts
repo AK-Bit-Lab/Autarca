@@ -1,11 +1,15 @@
 import { config } from "./config.js";
 import { x402Client } from "./x402Client.js";
 import { activityLog } from "./activityLog.js";
+import { agentMemory } from "./agentMemory.js";
 import type { OffChainValuation } from "./types.js";
 
 /**
  * Valuation Agent: fetches an up-to-date, off-chain fair-value estimate for
  * a given RWA. Real, premium data providers are paid per-request via x402.
+ *
+ * Every fetched valuation is recorded into Agent Memory so the Decision and
+ * Risk agents can reason over volatility and trend.
  */
 export async function fetchOffChainValuation(rwaId: string): Promise<OffChainValuation> {
   const url = `${config.rwa.dataProviderUrl}?rwaId=${encodeURIComponent(rwaId)}`;
@@ -16,6 +20,7 @@ export async function fetchOffChainValuation(rwaId: string): Promise<OffChainVal
     message: `Requesting fresh valuation for ${rwaId} (paid via x402 if required)`,
   });
 
+  let valuation: OffChainValuation;
   try {
     const data = await x402Client.payAndFetch<{
       fairValueUsdCents: number;
@@ -23,7 +28,7 @@ export async function fetchOffChainValuation(rwaId: string): Promise<OffChainVal
       source: string;
     }>(url);
 
-    return {
+    valuation = {
       rwaId,
       fairValueUsdCents: data.fairValueUsdCents,
       confidence: data.confidence,
@@ -33,14 +38,17 @@ export async function fetchOffChainValuation(rwaId: string): Promise<OffChainVal
   } catch {
     // Fallback to a simulated valuation so the demo pipeline can run
     // end-to-end even without a live premium data provider configured.
-    const simulated = simulateValuation(rwaId);
+    valuation = simulateValuation(rwaId);
     activityLog.push({
       timestamp: new Date().toISOString(),
       agent: "ValuationAgent",
       message: `Live data provider unavailable, using simulated valuation for ${rwaId}`,
     });
-    return simulated;
   }
+
+  // Feed the valuation into Agent Memory for volatility / trend tracking.
+  agentMemory.recordValuation(rwaId, valuation.fairValueUsdCents);
+  return valuation;
 }
 
 function simulateValuation(rwaId: string): OffChainValuation {

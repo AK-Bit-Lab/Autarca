@@ -5,6 +5,8 @@ import ActivityFeed from "@/components/ActivityFeed";
 import PositionsTable from "@/components/PositionsTable";
 import OnChainActions from "@/components/OnChainActions";
 import OracleReputationPanel from "@/components/OracleReputationPanel";
+import AgentReputationPanel from "@/components/AgentReputationPanel";
+import AgentReasoningTimeline from "@/components/AgentReasoningTimeline";
 import OpenPositionModal from "@/components/OpenPositionModal";
 import { getPositions } from "@/lib/csprCloud";
 import type { Position } from "@/lib/types";
@@ -50,11 +52,18 @@ export default function HomePage() {
 
       {loading && <p className="text-gray-500">Loading live positions from CSPR.cloud…</p>}
 
+      {/* Agent Reasoning Timeline — the centerpiece explainability feature,
+          given prominence at the top of the dashboard. */}
+      <section className="mb-6">
+        <AgentReasoningTimeline />
+      </section>
+
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <PositionsTable positions={positions} />
         <ActivityFeed />
         <OnChainActions />
         <OracleReputationPanel />
+        <AgentReputationPanel />
       </section>
 
       {showOpenModal && (

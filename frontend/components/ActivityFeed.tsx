@@ -7,6 +7,7 @@ const AGENT_COLORS: Record<ActivityLogEntry["agent"], string> = {
   ValuationAgent: "text-autarca-accent",
   ChainStateAgent: "text-sky-400",
   DecisionAgent: "text-autarca-warn",
+  RiskAgent: "text-purple-400",
   ExecutionAgent: "text-autarca-danger",
 };
 
