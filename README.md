@@ -193,6 +193,23 @@ You can run a complete end-to-end demo of my project in under five minutes:
 
 ---
 
+## Open Position Signing: Why Agent Signed Deploys
+
+The "Open Position" button in the dashboard submits an `open_position` deploy to the `AutarcaVault` contract on Casper Testnet. There are two ways this deploy can be signed:
+
+| Option | How it works | Pros | Cons |
+|---|---|---|---|
+| **Option A — Agent signed (chosen)** | The Next.js API route loads the agent's PEM key server side, signs the deploy with `casper-js-sdk`, and broadcasts it. | Mirrors the Execution Agent's responsibility (sign + broadcast). No browser wallet extension needed. Works for any judge with one click. Demonstrates the full autonomous pipeline: judge opens position → agent detects it → Valuation Agent runs → Decision Agent reasons → Risk Agent approves → Execution Agent updates. | The agent key is used for the initial seed. In production, the agent key would only sign autonomous actions, and users would sign their own `open_position` deploys. |
+| **Option B — CSPR.click wallet signed** | The dashboard connects to the user's Casper Wallet via CSPR.click, the user signs the deploy in the browser, and the dashboard submits the signed deploy. | True user custody: the user signs with their own key. Matches production DeFi UX. | Requires the Casper Wallet browser extension installed. Adds friction to the demo (judges must install an extension, create a testnet wallet, fund it). Breaks the seamless "one click → full pipeline" demo flow. |
+
+**Why we chose Option A for the Buildathon demo:**
+
+1. **Architectural consistency** — the Execution Agent's defined responsibility is to sign and broadcast deploys. Option A mirrors that exact flow in the Open Position path, so the demo shows one coherent signing model throughout.
+2. **Frictionless demo** — judges click "Open Position" and immediately see a deploy hash, finalization, and the autonomous pipeline reacting to the new position. No wallet installation, no testnet CSPR funding, no extension setup.
+3. **Pipeline visibility** — the whole point of the demo is to show the agent loop (Valuation → Decision → Risk → Execution). Option A gets a position on chain in one click so the agent loop has something to act on immediately.
+4. **Production path is documented** — Option B is the production path. The route's docstring and this README section document it explicitly. Swapping to CSPR.click signing is a frontend only change (replace the server side `loadKeys()` call with a browser wallet `sign()` call); the contract and agent runtime are unchanged.
+
+
 ## Security & Resilience
 
 - **Safe JSON parsing** — I built `safeJsonParse` to extract JSON from noisy LLM output via regex, failing gracefully.
