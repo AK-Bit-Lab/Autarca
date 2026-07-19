@@ -85,9 +85,13 @@ export async function POST(req: NextRequest) {
     }
 
     // Build the signed deploy using casper-js-sdk.
+    // casper-js-sdk expects the contract hash with a "hash-" prefix.
+    const contractHash = CONTRACT_HASH.startsWith("hash-")
+      ? CONTRACT_HASH
+      : `hash-${CONTRACT_HASH}`;
     const casperClient = new CasperClient(RPC_URL);
     const contractClient = new Contracts.Contract(casperClient);
-    contractClient.setContractHash(CONTRACT_HASH);
+    contractClient.setContractHash(contractHash);
 
     const args = RuntimeArgs.fromMap({
       rwa_id: CLValueBuilder.string(rwaId),
