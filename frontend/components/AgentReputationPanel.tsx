@@ -30,7 +30,7 @@ export default function AgentReputationPanel() {
       {reps.length === 0 && (
         <p className="text-gray-500 text-sm">
           No agent decisions scored yet. Reputation appears after the first
-          cycle's outcome is evaluated.
+          cycle&apos;s outcome is evaluated.
         </p>
       )}
 
