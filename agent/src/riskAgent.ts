@@ -130,7 +130,7 @@ async function reviewWithSwarmLlm(
   const swarmReason = `[Liq: ${liq.confirm ? 'Y' : 'N'}] ${liq.reasoning}. [Vol: ${vol.confirm ? 'Y' : 'N'}] ${vol.reasoning}. [CP: ${cp.confirm ? 'Y' : 'N'}] ${cp.reasoning}.`;
 
   const decision: AgentDecision = confirmed
-    ? { ...proposed, reasoning: `Risk Swarm confirmed liquidation (${confirmations}/3 votes): ${swarmReason}` }
+    ? { ...proposed, reasoning: `Risk Swarm confirmed liquidation (${confirmations}/3 votes): ${swarmReason}`, riskReviewed: true, riskVetoed: false }
     : {
       positionId: position.id,
       action: "UPDATE_VALUATION",
@@ -139,6 +139,8 @@ async function reviewWithSwarmLlm(
       confidence: proposed.confidence,
       alternativesConsidered: ["NOOP", "LIQUIDATE"],
       decidedBy: proposed.decidedBy,
+      riskReviewed: true,
+      riskVetoed: true,
     };
 
   activityLog.push({
@@ -214,6 +216,8 @@ function reviewWithRules(
       confidence: proposed.confidence,
       alternativesConsidered: ["NOOP", "LIQUIDATE"],
       decidedBy: proposed.decidedBy,
+      riskReviewed: true,
+      riskVetoed: true,
     };
     activityLog.push({
       timestamp: new Date().toISOString(),
@@ -229,5 +233,9 @@ function reviewWithRules(
     agent: "RiskAgent",
     message: `Risk Agent confirmed liquidation for position #${position.id} (all risk signals clear).`,
   });
-  return proposed;
+  return {
+    ...proposed,
+    riskReviewed: true,
+    riskVetoed: false,
+  };
 }

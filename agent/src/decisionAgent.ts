@@ -56,7 +56,7 @@ export async function decide(
     : decideWithRules(position, valuation, memory);
 
   // Multi-agent guardrail: never liquidate without the Risk Agent's sign-off.
-  return reviewLiquidation(position, valuation, proposed, memory);
+  return reviewLiquidation(position, valuation, proposed, memory, undefined);
 }
 
 /**

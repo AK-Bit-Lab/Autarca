@@ -57,8 +57,11 @@ async function runPipelineOnce() {
         reasoning: decision.reasoning,
         alternativesConsidered: decision.alternativesConsidered ?? [],
         decidedBy: decision.decidedBy ?? "RuleEngine",
-        riskApproved: decision.action !== "LIQUIDATE",
-        riskReasoning: decision.reasoning,
+        riskApproved: !decision.riskVetoed,
+        riskReasoning: decision.riskReviewed ? decision.reasoning : undefined,
+        // New fields tracking Risk Agent review/veto status
+        riskReviewed: decision.riskReviewed ?? false,
+        riskVetoed: decision.riskVetoed ?? false,
         finalized: false,
       });
 

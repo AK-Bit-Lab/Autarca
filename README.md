@@ -199,9 +199,7 @@ The "Open Position" button in the dashboard submits an `open_position` deploy to
 
 | Option | How it works | Pros | Cons |
 |---|---|---|---|
-| **Option A — Agent signed (chosen)** | The Next.js API route loads the agent's PEM key server side, signs the deploy with `casper-js-sdk`, and broadcasts it. | Mirrors the Execution Agent's responsibility (sign + broadcast). No browser wallet extension needed. Works for any judge with one click. Demonstrates the full autonomous pipeline: judge opens position → agent detects it → Valuation Agent runs → Decision Agent reasons → Risk Agent approves → Execution Agent updates. | The agent key is used for the initial seed. In production, the agent key would only sign autonomous actions, and users would sign their own `open_position` deploys. |
-| **Option B — CSPR.click wallet signed** | The dashboard connects to the user's Casper Wallet via CSPR.click, the user signs the deploy in the browser, and the dashboard submits the signed deploy. | True user custody: the user signs with their own key. Matches production DeFi UX. | Requires the Casper Wallet browser extension installed. Adds friction to the demo (judges must install an extension, create a testnet wallet, fund it). Breaks the seamless "one click → full pipeline" demo flow. |
-
+| **Option A — Agent signed (chosen)** | The Next.js API route loads the agent's PEM key server side, signs the deploy with `casper-js-sdk`, and broadcasts it. | Mirrors the Execution Agent's responsibility (sign + broadcast). No browser wallet extension needed. Works for any judge with one click. Demonstrates the full autonomous pipeline: judge opens position → agent detects it → Valuation Agent runs → Decision Agent reasons → Risk Agent approves → Execution Agent updates. | The agent key is used for the initial seed. In production, the agent key would only sign autonomous actions, and users would sign their own `open_position` deploys. |    | **Option B — CSPR.click wallet signed (Production Path)** | The dashboard connects to the user's Casper Wallet via CSPR.click, the user signs the deploy in the browser, and the dashboard submits the signed deploy. | True user custody: the user signs with their own key. Matches production DeFi UX. | Requires the Casper Wallet browser extension installed. Adds friction to the demo (judges must install an extension, create a testnet wallet, fund it). Breaks the seamless "one click → full pipeline" demo flow. |
 **Why we chose Option A for the Buildathon demo:**
 
 1. **Architectural consistency** — the Execution Agent's defined responsibility is to sign and broadcast deploys. Option A mirrors that exact flow in the Open Position path, so the demo shows one coherent signing model throughout.
@@ -209,13 +207,13 @@ The "Open Position" button in the dashboard submits an `open_position` deploy to
 3. **Pipeline visibility** — the whole point of the demo is to show the agent loop (Valuation → Decision → Risk → Execution). Option A gets a position on chain in one click so the agent loop has something to act on immediately.
 4. **Production path is documented** — Option B is the production path. The route's docstring and this README section document it explicitly. Swapping to CSPR.click signing is a frontend only change (replace the server side `loadKeys()` call with a browser wallet `sign()` call); the contract and agent runtime are unchanged.
 
+## The Reality of the Risk Swarm Consensus
+In our submission, the Risk Agent is implemented as a single-agent vetting step that evaluates multiple risk factors (Liquidity, Volatility, Counterparty) natively rather than spawning sub-agents. The "Risk Swarm" text in earlier descriptions was an initial design concept. The current `riskAgent.ts` implementation effectively and deterministically enforces these checks to provide a rigorous second opinion, vetoing decisions when necessary to protect the system.
 
-## Security & Resilience
-
-- **Safe JSON parsing** — I built `safeJsonParse` to extract JSON from noisy LLM output via regex, failing gracefully.
-- **Retry with backoff** — `withRetry` uses exponential backoff plus jitter.
-- **Circuit breakers** — A `CircuitBreaker` trips open after repeated failures, degrading gracefully to a rule-based fallback instead of crashing the pipeline.
-- **On-chain guards** — `AutarcaVault` enforces strict ratios and only whitelisted agent keys can execute operations.
+## Deployed Addresses
+- **Testnet Contract Package Hash**: `ffd6159dfccb213409230b82972b7cddd925328b85670e78b929e226eb59aa65`
+- **Testnet Deploy Hash**: `e37f82f4db013299ee8767d8937c696f85a254fb86732e72e0b999be807ff779`
+- **Deployed by**: `0202994bf7c8ded671bcfcc1c9dccb79805c74d8e2884355714e1fedf2411bc27285`
 
 ---
 
@@ -265,11 +263,10 @@ Autarca is built to give back to the Casper ecosystem. My vision extends beyond 
 
 ## Links
 
-- **GitHub:** https://github.com/autarca/autarca
-- **Demo video:** https://youtube.com/@autarca
+- **GitHub:** https://github.com/AK-Bit-Lab/Autarca
+- **Demo video:** https://youtube.com/watch?v=placeholder
 - **Twitter/X:** https://twitter.com/autarca_xyz
 - **Landing page:** https://autarca.xyz
-
 ---
 
 ## License

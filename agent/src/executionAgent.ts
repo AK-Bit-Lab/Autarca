@@ -25,7 +25,7 @@ export class ExecutionAgent {
 
   private loadKeys(): Keys.AsymmetricKey {
     const pem = fs.readFileSync(config.agent.privateKeyPath, "utf-8");
-    // Prefer Ed25519 (most Casper test keys). If parsing fails, fall back to Secp256K1.
+    // Always try to load Ed25519 first since we use Ed25519 exclusively for the hackathon
     try {
       const body = pem
         .replace(/-----BEGIN[^-]+-----/, "")
@@ -36,11 +36,8 @@ export class ExecutionAgent {
         Keys.Ed25519.privateToPublicKey(buf),
         buf
       );
-    } catch {
-      // Fallback to Secp256K1 if Ed25519 parsing fails.
-      return Keys.Secp256K1.loadKeyPairFromPrivateFile(
-        config.agent.privateKeyPath
-      );
+    } catch (err) {
+      throw new Error(`Failed to load Ed25519 keys from ${config.agent.privateKeyPath}: ${(err as Error).message}`);
     }
   }
 
@@ -78,18 +75,18 @@ export class ExecutionAgent {
       let args: RuntimeArgs;
       if (decision.action === "LIQUIDATE") {
         args = RuntimeArgs.fromMap({
-          position_id: CLValueBuilder.u64(decision.positionId),
+          position_id: CLValueBuilder.u64(decision.positionId.toString()),
         });
       } else if (decision.action === "ALLOCATE_YIELD") {
         args = RuntimeArgs.fromMap({
-          position_id: CLValueBuilder.u64(decision.positionId),
-          amount_usd_cents: CLValueBuilder.u64(decision.yieldAmountUsdCents ?? 0),
+          position_id: CLValueBuilder.u64(decision.positionId.toString()),
+          amount_usd_cents: CLValueBuilder.u64((decision.yieldAmountUsdCents ?? 0).toString()),
         });
       } else {
         args = RuntimeArgs.fromMap({
-          position_id: CLValueBuilder.u64(decision.positionId),
+          position_id: CLValueBuilder.u64(decision.positionId.toString()),
           new_collateral_value_usd_cents: CLValueBuilder.u64(
-            decision.newCollateralValueUsdCents ?? 0
+            (decision.newCollateralValueUsdCents ?? 0).toString()
           ),
           valuation_source: CLValueBuilder.string(
             decision.valuationSource ?? "autarca-agent"

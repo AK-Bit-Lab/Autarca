@@ -35,6 +35,10 @@ export interface AgentDecision {
   alternativesConsidered?: AgentAction[];
   /** Name of the agent that produced this decision (for reputation scoring). */
   decidedBy?: "DecisionAgent" | "RuleEngine";
+   /** Whether the Risk Agent reviewed this decision. */
+   riskReviewed?: boolean;
+   /** Whether the Risk Agent vetoed (true) or approved (false) the decision. */
+   riskVetoed?: boolean;
 }
 
 export interface ActivityLogEntry {
@@ -75,6 +79,10 @@ export interface DecisionRecord {
   // Risk Agent
   riskApproved: boolean;
   riskReasoning?: string;
+  /** Whether the Risk Agent reviewed this decision. */
+  riskReviewed?: boolean;
+  /** Whether the Risk Agent vetoed (true) or approved (false) the decision. */
+  riskVetoed?: boolean;
   // Execution
   deployHash?: string;
   blockHash?: string;

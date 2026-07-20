@@ -89,7 +89,7 @@ class AgentMemory {
     }
     // Risk Agent reputation: a veto that prevented a harmful liquidation
     // counts as accurate; approving a harmful one counts as inaccurate.
-    if (prev.action === "LIQUIDATE" || prev.riskReasoning) {
+    if (prev.riskReviewed) {
       const riskAccurate =
         outcome !== "harmful" && outcome !== "stale";
       this.bumpReputation("RiskAgent", riskAccurate);

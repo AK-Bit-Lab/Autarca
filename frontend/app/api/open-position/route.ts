@@ -63,10 +63,17 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const rwaId: string = body.rwaId;
-    const collateral: number = Number(body.collateralValueUsdCents);
-    const debt: number = Number(body.debtValueUsdCents);
+    // Accept string or number, convert directly to BigInt to avoid precision loss.
+    const collateralBig: bigint =
+      typeof body.collateralValueUsdCents === "bigint"
+        ? body.collateralValueUsdCents
+        : BigInt(body.collateralValueUsdCents);
+    const debtBig: bigint =
+      typeof body.debtValueUsdCents === "bigint"
+        ? body.debtValueUsdCents
+        : BigInt(body.debtValueUsdCents);
 
-    if (!rwaId || !Number.isFinite(collateral) || !Number.isFinite(debt)) {
+    if (!rwaId || collateralBig < BigInt(0) || debtBig < BigInt(0)) {
       return NextResponse.json({ error: "Invalid input" }, { status: 400 });
     }
 
@@ -92,11 +99,10 @@ export async function POST(req: NextRequest) {
     const casperClient = new CasperClient(RPC_URL);
     const contractClient = new Contracts.Contract(casperClient);
     contractClient.setContractHash(contractHash);
-
     const args = RuntimeArgs.fromMap({
       rwa_id: CLValueBuilder.string(rwaId),
-      collateral_value_usd_cents: CLValueBuilder.u64(BigInt(collateral)),
-      debt_value_usd_cents: CLValueBuilder.u64(BigInt(debt)),
+      collateral_value_usd_cents: CLValueBuilder.u64(collateralBig.toString()),
+      debt_value_usd_cents: CLValueBuilder.u64(debtBig.toString()),
     });
 
     const deploy = contractClient.callEntrypoint(

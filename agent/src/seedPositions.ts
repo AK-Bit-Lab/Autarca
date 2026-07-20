@@ -83,8 +83,8 @@ async function main() {
     console.log(`==> Opening position: ${p.rwaId} (${p.description})`);
     const args = RuntimeArgs.fromMap({
       rwa_id: CLValueBuilder.string(p.rwaId),
-      collateral_value_usd_cents: CLValueBuilder.u64(p.collateralValueUsdCents),
-      debt_value_usd_cents: CLValueBuilder.u64(p.debtValueUsdCents),
+      collateral_value_usd_cents: CLValueBuilder.u64(p.collateralValueUsdCents.toString()),
+      debt_value_usd_cents: CLValueBuilder.u64(p.debtValueUsdCents.toString()),
     });
 
     const deploy = contractClient.callEntrypoint(
