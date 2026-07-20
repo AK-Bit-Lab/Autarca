@@ -211,10 +211,11 @@ The "Open Position" button in the dashboard submits an `open_position` deploy to
 In our submission, the Risk Agent is implemented as a single-agent vetting step that evaluates multiple risk factors (Liquidity, Volatility, Counterparty) natively rather than spawning sub-agents. The "Risk Swarm" text in earlier descriptions was an initial design concept. The current `riskAgent.ts` implementation effectively and deterministically enforces these checks to provide a rigorous second opinion, vetoing decisions when necessary to protect the system.
 
 ## Deployed Addresses
-- **Testnet Contract Package Hash**: `ffd6159dfccb213409230b82972b7cddd925328b85670e78b929e226eb59aa65`
-- **Testnet Contract Hash**: `9cf093c109418ef580b319cc19bff9710d7c63dcd29b29677bf48e614bf7823b`
-- **Testnet Deploy Hash**: `e37f82f4db013299ee8767d8937c696f85a254fb86732e72e0b999be807ff779`
-- **Deployed by**: `0202994bf7c8ded671bcfcc1c9dccb79805c74d8e2884355714e1fedf2411bc27285`
+- **Testnet Contract Package Hash**: `ffd6159dfccb213409230b82972b7cddd925328b85670e78b929e226eb59aa65`                     
+- **Testnet Contract Hash**: `9cf093c109418ef580b319cc19bff9710d7c63dcd29b29677bf48e614bf7823b`                             
+- **Testnet Initial Deploy Hash**: `e37f82f4db013299ee8767d8937c696f85a254fb86732e72e0b999be807ff779`
+- **Testnet Recent Open Position Deploy**: `e85457bb51d98eea69fdfdd95dfbb88142cbd0f4b2f2d36771ffde2261822cc5`
+- **Deployed by**: `0202994bf7c8ded671bcfcc1c9dccb79805c74d8e2884355714e1fedf2411bc27285`    
 
 ---
 
