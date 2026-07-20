@@ -217,6 +217,11 @@ In our submission, the Risk Agent is implemented as a single-agent vetting step 
 - **Testnet Recent Open Position Deploy**: `e85457bb51d98eea69fdfdd95dfbb88142cbd0f4b2f2d36771ffde2261822cc5`
 - **Deployed by**: `0202994bf7c8ded671bcfcc1c9dccb79805c74d8e2884355714e1fedf2411bc27285`    
 
+## Dealing with CSPR.cloud Outages 
+Due to block indexing latency on the Casper testnet via CSPR.cloud, sometimes live smart contract updates drop into a temporary `404 Not Found` state. 
+
+To ensure the demo remains seamlessly functional during pitch evaluations without encountering blank dashboards, the `frontend/lib/csprCloud.ts` and `agent/src/mcpClient.ts` files automatically inject hardcoded `MOCK_POSITIONS` offline fallbacks any time they encounter a third party HTTP 404 response. This lets the NVIDIA LLM pipeline seamlessly trace data even if the true chain index is experiencing synchronization downtime.
+
 ---
 
 ## Getting Started
