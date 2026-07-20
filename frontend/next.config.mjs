@@ -1,10 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    webpack: (config, { isServer }) => {
-        if (isServer) {
-            config.externals.push('isomorphic-fetch', 'node-fetch');
-        }
-        return config;
-    }
+  experimental: {
+    serverComponentsExternalPackages: ['casper-js-sdk', 'isomorphic-fetch', 'node-fetch'],
+  },
 };
 export default nextConfig;
