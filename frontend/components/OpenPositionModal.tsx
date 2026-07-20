@@ -62,8 +62,18 @@ export default function OpenPositionModal({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to open position");
+
       setResult(data.deployHash ?? "opened");
+      
+      // Clear form boxes upon success
+      setRwaId("");
+      setCollateral("");
+      setDebt("");
+      setDocId("");
+      
+      // Notify parent to refresh and close modal after 3 seconds so user sees the deploy hash
       onOpened();
+      setTimeout(onClose, 3000);
     } catch (err) {
       setError((err as Error).message);
     } finally {
