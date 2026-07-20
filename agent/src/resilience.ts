@@ -1,5 +1,5 @@
 /**
- * Safe JSON parsing with a typed fallback. Never throws — returns the fallback
+ * Safe JSON parsing with a typed fallback. Never throws - returns the fallback
  * if the input is empty, malformed, or doesn't match the validator.
  *
  * Used everywhere we parse LLM output, x402 proof payloads, or MCP responses,

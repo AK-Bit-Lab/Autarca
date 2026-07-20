@@ -6,7 +6,7 @@
 
 **An autonomous, AI-driven pipeline that I built to keep tokenized real-world asset collateral trustworthy, liquid, and safe.**
 
-My submission for the **Casper Agentic Buildathon 2026** — Final Round.
+My submission for the **Casper Agentic Buildathon 2026** - Final Round.
 
 [![Casper Network](https://img.shields.io/badge/Casper-Testnet-red?logo=casper)](https://casper.network)
 [![Odra Framework](https://img.shields.io/badge/Odra-Rust-orange?logo=rust)](https://odra.dev)
@@ -38,7 +38,7 @@ My submission for the **Casper Agentic Buildathon 2026** — Final Round.
 
 ## Why I Built Autarca
 
-Tokenized real-world assets (RWAs) are the next trillion-dollar wave in DeFi — real estate, treasury bills, invoices, carbon credits. But when I looked at RWA collateral, I realized it has a fatal flaw that pure crypto collateral does not:
+Tokenized real-world assets (RWAs) are the next trillion-dollar wave in DeFi - real estate, treasury bills, invoices, carbon credits. But when I looked at RWA collateral, I realized it has a fatal flaw that pure crypto collateral does not:
 
 > **The value of an RWA changes off-chain, and nobody is watching.**
 
@@ -63,31 +63,31 @@ Today, when an RWA position drifts out of safe collateral ratios, a human operat
 
 - [x] **Autonomous valuation refresh** via x402 micropayments
 - [x] **AI Decision Agent** with confidence scores, alternatives, and yield routing
-- [x] **Risk Swarm Consensus** — specialized agents (Liquidity, Volatility, Counterparty) voting on actions
-- [x] **AI Compliance / KYC Gate** — mock document validation to open positions
-- [x] **Agent Memory** — decision history, valuation volatility, trend tracking
-- [x] **Agent Reputation** — per-agent accuracy scoring with outcome heuristics
-- [x] **Oracle Reputation** — on-chain per-source accuracy scoring
-- [x] **Explainability Timeline** — full reasoning chain per cycle in the dashboard
-- [x] **Resilience** — safe JSON parsing, exponential backoff retries, timeouts, circuit breakers
-- [x] **On-chain Execution** — signed deploys to AutarcaVault on Casper Testnet
-- [x] **Live Dashboard** — glowing x402 activity, positions, on-chain actions, reputation
-- [x] **CI/CD** — cargo fmt/clippy/test, agent build/test, frontend lint/build, testnet deploy workflow
+- [x] **Risk Swarm Consensus** - specialized agents (Liquidity, Volatility, Counterparty) voting on actions
+- [x] **AI Compliance / KYC Gate** - mock document validation to open positions
+- [x] **Agent Memory** - decision history, valuation volatility, trend tracking
+- [x] **Agent Reputation** - per-agent accuracy scoring with outcome heuristics
+- [x] **Oracle Reputation** - on-chain per-source accuracy scoring
+- [x] **Explainability Timeline** - full reasoning chain per cycle in the dashboard
+- [x] **Resilience** - safe JSON parsing, exponential backoff retries, timeouts, circuit breakers
+- [x] **On-chain Execution** - signed deploys to AutarcaVault on Casper Testnet
+- [x] **Live Dashboard** - glowing x402 activity, positions, on-chain actions, reputation
+- [x] **CI/CD** - cargo fmt/clippy/test, agent build/test, frontend lint/build, testnet deploy workflow
 
 ---
 
 ## Why Casper?
 
-I chose to build Autarca natively on Casper because it gives me the exact primitives an autonomous RWA pipeline needs—something no other chain combines so effectively:
+I chose to build Autarca natively on Casper because it gives me the exact primitives an autonomous RWA pipeline needs-something no other chain combines so effectively:
 
-1. **Odra Smart Contract Framework** — ergonomic Rust contracts with first-class testing. The `AutarcaVault` and `OracleReputation` contracts are written in Odra and compile to Casper WASM.
-2. **Casper MCP Server** — my agents read live chain state (positions, collateral ratios, oracle reputation) through the Model Context Protocol, the same standard used by AI agents everywhere. This makes the agent a first-class citizen of the Casper stack.
-3. **CSPR.cloud REST + Streaming APIs** — the dashboard pulls live positions, deploys, and block data directly from CSPR.cloud without needing a node.
-4. **x402 Micropayment Protocol** — the Valuation Agent pays per-appraisal over HTTP 402, settling each request on-chain. This is the ultimate payment rail for autonomous agents buying data.
-5. **CSPR.click Wallet Integration** — users can open RWA positions directly from the dashboard using a secure Casper wallet.
-6. **Testnet Finality and Predictable Gas** — the Execution Agent signs and broadcasts deploys that finalize in seconds, making my autonomous loop highly responsive.
+1. **Odra Smart Contract Framework** - ergonomic Rust contracts with first-class testing. The `AutarcaVault` and `OracleReputation` contracts are written in Odra and compile to Casper WASM.
+2. **Casper MCP Server** - my agents read live chain state (positions, collateral ratios, oracle reputation) through the Model Context Protocol, the same standard used by AI agents everywhere. This makes the agent a first-class citizen of the Casper stack.
+3. **CSPR.cloud REST + Streaming APIs** - the dashboard pulls live positions, deploys, and block data directly from CSPR.cloud without needing a node.
+4. **x402 Micropayment Protocol** - the Valuation Agent pays per-appraisal over HTTP 402, settling each request on-chain. This is the ultimate payment rail for autonomous agents buying data.
+5. **CSPR.click Wallet Integration** - users can open RWA positions directly from the dashboard using a secure Casper wallet.
+6. **Testnet Finality and Predictable Gas** - the Execution Agent signs and broadcasts deploys that finalize in seconds, making my autonomous loop highly responsive.
 
-For me, Casper isn't just the settlement layer — it is the **data layer** (MCP + CSPR.cloud), the **payment layer** (x402), and the **wallet layer** (CSPR.click) for the entire pipeline.
+For me, Casper isn't just the settlement layer - it is the **data layer** (MCP + CSPR.cloud), the **payment layer** (x402), and the **wallet layer** (CSPR.click) for the entire pipeline.
 
 ---
 
@@ -158,15 +158,15 @@ Autarca/
 
 Autarca is not just "another RWA lending app." My core innovation is building an **autonomous, explainable, reputation-scored system**:
 
-1. **Yield-Routing Focus (Offense)** — Instead of just playing defense (liquidating), the Decision Agent allocates excess collateral to yield-bearing DeFi protocols, acting as an active portfolio manager.
-2. **Risk Swarm Consensus** — Decisions are vetted by a swarm of specialized LLM personas (Liquidity, Volatility, Counterparty) arriving at a weighted consensus.
-3. **Agent Memory** — The agent remembers every decision. It computes volatility and tracks outcomes contextually. The next decision is made *in context*, not from scratch.
-4. **Confidence + Alternatives** — Every decision carries a `confidence` score (0..1) and an `alternativesConsidered` list. The dashboard shows what the agent did, *what else it could have done*, and *how sure it was*.
-5. **Dual Reputation System** —
+1. **Yield-Routing Focus (Offense)** - Instead of just playing defense (liquidating), the Decision Agent allocates excess collateral to yield-bearing DeFi protocols, acting as an active portfolio manager.
+2. **Risk Swarm Consensus** - Decisions are vetted by a swarm of specialized LLM personas (Liquidity, Volatility, Counterparty) arriving at a weighted consensus.
+3. **Agent Memory** - The agent remembers every decision. It computes volatility and tracks outcomes contextually. The next decision is made *in context*, not from scratch.
+4. **Confidence + Alternatives** - Every decision carries a `confidence` score (0..1) and an `alternativesConsidered` list. The dashboard shows what the agent did, *what else it could have done*, and *how sure it was*.
+5. **Dual Reputation System** -
    - **Oracle Reputation** (on-chain): Each valuation source's historical accuracy is recorded in the `OracleReputation` contract.
    - **Agent Reputation** (in-memory + dashboard): Each agent's decisions are scored by outcome heuristics.
-6. **AI Compliance / KYC** — An off-chain compliance agent verifies user profiles before RWA minting, keeping private data off-chain while producing actionable trust tokens via Casper.
-7. **x402 as the Payment Rail** — The system visually highlights real x402 micropayments paying for API appraisals, proving the viability of autonomous agents buying data.
+6. **AI Compliance / KYC** - An off-chain compliance agent verifies user profiles before RWA minting, keeping private data off-chain while producing actionable trust tokens via Casper.
+7. **x402 as the Payment Rail** - The system visually highlights real x402 micropayments paying for API appraisals, proving the viability of autonomous agents buying data.
 
 ---
 
@@ -199,13 +199,13 @@ The "Open Position" button in the dashboard submits an `open_position` deploy to
 
 | Option | How it works | Pros | Cons |
 |---|---|---|---|
-| **Option A — Agent signed (chosen)** | The Next.js API route loads the agent's PEM key server side, signs the deploy with `casper-js-sdk`, and broadcasts it. | Mirrors the Execution Agent's responsibility (sign + broadcast). No browser wallet extension needed. Works for any judge with one click. Demonstrates the full autonomous pipeline: judge opens position → agent detects it → Valuation Agent runs → Decision Agent reasons → Risk Agent approves → Execution Agent updates. | The agent key is used for the initial seed. In production, the agent key would only sign autonomous actions, and users would sign their own `open_position` deploys. |    | **Option B — CSPR.click wallet signed (Production Path)** | The dashboard connects to the user's Casper Wallet via CSPR.click, the user signs the deploy in the browser, and the dashboard submits the signed deploy. | True user custody: the user signs with their own key. Matches production DeFi UX. | Requires the Casper Wallet browser extension installed. Adds friction to the demo (judges must install an extension, create a testnet wallet, fund it). Breaks the seamless "one click → full pipeline" demo flow. |
+| **Option A - Agent signed (chosen)** | The Next.js API route loads the agent's PEM key server side, signs the deploy with `casper-js-sdk`, and broadcasts it. | Mirrors the Execution Agent's responsibility (sign + broadcast). No browser wallet extension needed. Works for any judge with one click. Demonstrates the full autonomous pipeline: judge opens position → agent detects it → Valuation Agent runs → Decision Agent reasons → Risk Agent approves → Execution Agent updates. | The agent key is used for the initial seed. In production, the agent key would only sign autonomous actions, and users would sign their own `open_position` deploys. |    | **Option B - CSPR.click wallet signed (Production Path)** | The dashboard connects to the user's Casper Wallet via CSPR.click, the user signs the deploy in the browser, and the dashboard submits the signed deploy. | True user custody: the user signs with their own key. Matches production DeFi UX. | Requires the Casper Wallet browser extension installed. Adds friction to the demo (judges must install an extension, create a testnet wallet, fund it). Breaks the seamless "one click → full pipeline" demo flow. |
 **Why we chose Option A for the Buildathon demo:**
 
-1. **Architectural consistency** — the Execution Agent's defined responsibility is to sign and broadcast deploys. Option A mirrors that exact flow in the Open Position path, so the demo shows one coherent signing model throughout.
-2. **Frictionless demo** — judges click "Open Position" and immediately see a deploy hash, finalization, and the autonomous pipeline reacting to the new position. No wallet installation, no testnet CSPR funding, no extension setup.
-3. **Pipeline visibility** — the whole point of the demo is to show the agent loop (Valuation → Decision → Risk → Execution). Option A gets a position on chain in one click so the agent loop has something to act on immediately.
-4. **Production path is documented** — Option B is the production path. The route's docstring and this README section document it explicitly. Swapping to CSPR.click signing is a frontend only change (replace the server side `loadKeys()` call with a browser wallet `sign()` call); the contract and agent runtime are unchanged.
+1. **Architectural consistency** - the Execution Agent's defined responsibility is to sign and broadcast deploys. Option A mirrors that exact flow in the Open Position path, so the demo shows one coherent signing model throughout.
+2. **Frictionless demo** - judges click "Open Position" and immediately see a deploy hash, finalization, and the autonomous pipeline reacting to the new position. No wallet installation, no testnet CSPR funding, no extension setup.
+3. **Pipeline visibility** - the whole point of the demo is to show the agent loop (Valuation → Decision → Risk → Execution). Option A gets a position on chain in one click so the agent loop has something to act on immediately.
+4. **Production path is documented** - Option B is the production path. The route's docstring and this README section document it explicitly. Swapping to CSPR.click signing is a frontend only change (replace the server side `loadKeys()` call with a browser wallet `sign()` call); the contract and agent runtime are unchanged.
 
 ## The Reality of the Risk Swarm Consensus
 In our submission, the Risk Agent is implemented as a single-agent vetting step that evaluates multiple risk factors (Liquidity, Volatility, Counterparty) natively rather than spawning sub-agents. The "Risk Swarm" text in earlier descriptions was an initial design concept. The current `riskAgent.ts` implementation effectively and deterministically enforces these checks to provide a rigorous second opinion, vetoing decisions when necessary to protect the system.

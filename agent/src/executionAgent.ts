@@ -156,7 +156,7 @@ export class ExecutionAgent {
           if (blockHash) return { blockHash };
         }
       } catch {
-        // deploy not yet known / not finalized — keep polling
+        // deploy not yet known / not finalized - keep polling
       }
       await new Promise((r) => setTimeout(r, 5_000));
     }

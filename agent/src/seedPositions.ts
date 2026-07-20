@@ -27,7 +27,7 @@ const SEED_POSITIONS: SeedPosition[] = [
     rwaId: "rwa-real-estate-001",
     collateralValueUsdCents: 210_000, // $2,100.00
     debtValueUsdCents: 100_000, // $1,000.00  → 210% ratio (Healthy)
-    description: "Tokenized commercial real estate — Istanbul office unit",
+    description: "Tokenized commercial real estate - Istanbul office unit",
   },
   {
     rwaId: "rwa-tbill-2026-q3",
@@ -39,7 +39,7 @@ const SEED_POSITIONS: SeedPosition[] = [
     rwaId: "rwa-invoice-acme-0042",
     collateralValueUsdCents: 155_000, // $1,550.00
     debtValueUsdCents: 100_000, // $1,000.00  → 155% ratio (Healthy, near Warning)
-    description: "Outstanding invoice — Acme Corp, net-30",
+    description: "Outstanding invoice - Acme Corp, net-30",
   },
   {
     rwaId: "rwa-carbon-credit-2026",

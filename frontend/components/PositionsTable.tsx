@@ -46,7 +46,7 @@ export default function PositionsTable({ positions }: { positions: Position[] })
               <td className="py-2 pr-4">
                 {p.debtValueUsdCents > 0
                   ? `${((p.collateralValueUsdCents / p.debtValueUsdCents) * 100).toFixed(0)}%`
-                  : "—"}
+                  : "-"}
               </td>
               <td className="py-2 pr-4">
                 <span className={`px-2 py-1 rounded-md text-xs ${STATUS_STYLES[p.status]}`}>

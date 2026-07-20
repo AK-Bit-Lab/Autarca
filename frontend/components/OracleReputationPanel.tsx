@@ -41,7 +41,7 @@ export default function OracleReputationPanel() {
         RWA Oracle Reputation
       </h2>
       <p className="text-gray-500 text-xs mb-3">
-        On-chain accuracy score for each valuation source — trust-minimized RWA
+        On-chain accuracy score for each valuation source - trust-minimized RWA
         oracle reputation (verifiable on Casper Testnet).
       </p>
       {reps.length === 0 && (

@@ -202,7 +202,7 @@ function reviewWithRules(
     );
   }
 
-  // 6. Previous decision was harmful — be extra cautious
+  // 6. Previous decision was harmful - be extra cautious
   if (memory.previousDecision?.outcome === "harmful") {
     reasons.push(`previous decision for this position was harmful`);
   }

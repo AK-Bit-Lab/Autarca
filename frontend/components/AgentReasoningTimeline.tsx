@@ -32,7 +32,7 @@ function confidenceColor(c: number): string {
 }
 
 /**
- * Agent Reasoning Timeline — the centerpiece explainability feature.
+ * Agent Reasoning Timeline - the centerpiece explainability feature.
  *
  * For each agent cycle it renders the full reasoning chain a judge can follow
  * in seconds:

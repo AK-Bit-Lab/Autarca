@@ -3,13 +3,13 @@
 import { useAgentFeed } from "@/lib/useAgentFeed";
 
 /**
- * Agent Reputation panel — the per-agent analogue of the on-chain Oracle
+ * Agent Reputation panel - the per-agent analogue of the on-chain Oracle
  * Reputation. Each agent (DecisionAgent, RiskAgent, ValuationAgent) gets an
  * accuracy score derived from the outcome of its past decisions, tracked in
  * the agent's in-memory store and broadcast to the dashboard.
  *
- * Showing judges that the agents are themselves scored — not just the
- * oracles they consume — makes the autonomy story much more convincing.
+ * Showing judges that the agents are themselves scored - not just the
+ * oracles they consume - makes the autonomy story much more convincing.
  */
 export default function AgentReputationPanel() {
   const { agentReputations } = useAgentFeed();
@@ -22,7 +22,7 @@ export default function AgentReputationPanel() {
     <div className="bg-autarca-panel rounded-xl p-4">
       <h2 className="text-lg font-semibold mb-3 text-white">Agent Reputation</h2>
       <p className="text-gray-500 text-xs mb-3">
-        Per-agent decision accuracy — the autonomous equivalent of on-chain
+        Per-agent decision accuracy - the autonomous equivalent of on-chain
         oracle reputation. Agents that repeatedly make harmful or stale
         decisions lose trust over time.
       </p>

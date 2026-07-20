@@ -31,9 +31,9 @@ const client = config.llm.apiKey
  * always works.
  *
  * Every decision carries:
- *   - `confidence` (0..1) — how sure the agent is,
- *   - `alternativesConsidered` — the other actions it weighed,
- *   - `decidedBy` — "DecisionAgent" (LLM) or "RuleEngine".
+ *   - `confidence` (0..1) - how sure the agent is,
+ *   - `alternativesConsidered` - the other actions it weighed,
+ *   - `decidedBy` - "DecisionAgent" (LLM) or "RuleEngine".
  *
  * Any proposed LIQUIDATE is routed through the Risk Agent for a second
  * opinion before being returned.

@@ -12,11 +12,11 @@ import type {
  * agents no longer start from scratch each tick.
  *
  * It tracks three things:
- *   1. Decision history (per position) — for replay, outcome scoring, and
+ *   1. Decision history (per position) - for replay, outcome scoring, and
  *      agent reputation.
- *   2. Per-agent reputation — accuracy of each agent's past decisions,
+ *   2. Per-agent reputation - accuracy of each agent's past decisions,
  *      mirroring the on-chain oracle reputation.
- *   3. Valuation history (per RWA) — for volatility / trend features that the
+ *   3. Valuation history (per RWA) - for volatility / trend features that the
  *      Decision and Risk agents can reason over.
  *
  * The store is intentionally process-local (no DB) so the demo runs without
