@@ -5,13 +5,16 @@
  *
  * Usage: npx tsx src/seedPositions.ts
  */
+import fs from "node:fs";
 import {
-  CasperClient,
-  CLValueBuilder,
-  Contracts,
-  Keys,
-  RuntimeArgs,
+  type CasperClient as ICasperClient,
+  type CLValueBuilder as ICLValueBuilder,
+  type Contracts as IContracts,
+  type Keys as IKeys,
+  type RuntimeArgs as IRuntimeArgs,
 } from "casper-js-sdk";
+import pkg from "casper-js-sdk";
+const { CasperClient, CLValueBuilder, Contracts, Keys, RuntimeArgs } = pkg;
 import { config } from "./config.js";
 import { activityLog } from "./activityLog.js";
 
@@ -49,7 +52,7 @@ const SEED_POSITIONS: SeedPosition[] = [
   },
 ];
 
-function loadKeys(): Keys.AsymmetricKey {
+function loadKeys(): IKeys.AsymmetricKey {
   try {
     return Keys.Secp256K1.loadKeyPairFromPrivateFile(config.agent.privateKeyPath);
   } catch {

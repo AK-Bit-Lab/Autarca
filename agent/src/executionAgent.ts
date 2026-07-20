@@ -1,11 +1,13 @@
 import fs from "node:fs";
 import {
-  CasperClient,
-  CLValueBuilder,
-  Contracts,
-  Keys,
-  RuntimeArgs,
+  type CasperClient as ICasperClient,
+  type CLValueBuilder as ICLValueBuilder,
+  type Contracts as IContracts,
+  type Keys as IKeys,
+  type RuntimeArgs as IRuntimeArgs,
 } from "casper-js-sdk";
+import pkg from "casper-js-sdk";
+const { CasperClient, CLValueBuilder, Contracts, Keys, RuntimeArgs } = pkg;
 import { config } from "./config.js";
 import { activityLog } from "./activityLog.js";
 import type { AgentDecision } from "./types.js";
@@ -23,7 +25,7 @@ import type { AgentDecision } from "./types.js";
 export class ExecutionAgent {
   private contractClient = new Contracts.Contract();
 
-  private loadKeys(): Keys.AsymmetricKey {
+  private loadKeys(): IKeys.AsymmetricKey {
     const pem = fs.readFileSync(config.agent.privateKeyPath, "utf-8");
     // Always try to load Ed25519 first since we use Ed25519 exclusively for the hackathon
     try {
@@ -72,7 +74,7 @@ export class ExecutionAgent {
       if (decision.action === "LIQUIDATE") entryPoint = "agent_liquidate";
       if (decision.action === "ALLOCATE_YIELD") entryPoint = "agent_allocate_yield";
 
-      let args: RuntimeArgs;
+      let args: IRuntimeArgs;
       if (decision.action === "LIQUIDATE") {
         args = RuntimeArgs.fromMap({
           position_id: CLValueBuilder.u64(decision.positionId.toString()),
@@ -143,7 +145,7 @@ export class ExecutionAgent {
    * Casper deploys are finalized after enough block confirmations.
    */
   private async waitForDeploy(
-    casperClient: CasperClient,
+    casperClient: ICasperClient,
     deployHash: string,
     timeoutMs = 120_000
   ): Promise<{ blockHash: string } | null> {
