@@ -11,7 +11,7 @@ import {
 export const runtime = "nodejs";
 
 const RPC_URL =
-  process.env.CASPER_NODE_RPC_URL ?? "https://node.testnet.casper.network/rpc";
+  process.env.CASPER_NODE_RPC_URL ?? "http://138.201.54.44:7777/rpc"; // Fallback to an active IP IP node over Testnet if node.testnet.casper.network is unresolvable
 const NETWORK_NAME = process.env.CASPER_NETWORK_NAME ?? "casper-test";
 const CONTRACT_HASH = process.env.NEXT_PUBLIC_AUTARCA_CONTRACT_HASH ?? "";
 const DEPLOYER_KEY_PATH =

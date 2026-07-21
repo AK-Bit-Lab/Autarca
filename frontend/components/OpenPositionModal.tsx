@@ -20,7 +20,7 @@ export default function OpenPositionModal({
   onClose: () => void;
   onOpened: () => void;
 }) {
-  const [rwaId, setRwaId] = useState("rwa-real-estate-001");
+  const [rwaId, setRwaId] = useState(`rwa-item-${Math.floor(Math.random() * 10000)}`);
   const [collateral, setCollateral] = useState("2100.00");
   const [debt, setDebt] = useState("1000.00");
   const [docId, setDocId] = useState("DOC-JD-1980");
@@ -66,9 +66,9 @@ export default function OpenPositionModal({
       setResult(data.deployHash ?? "opened");
       
       // Clear form boxes upon success
-      setRwaId("");
-      setCollateral("");
-      setDebt("");
+      setRwaId(`rwa-item-${Math.floor(Math.random() * 10000)}`); // reset with random value instead of blank
+      setCollateral("2100.00");
+      setDebt("1000.00");
       setDocId("");
       
       // Notify parent to refresh and close modal after 3 seconds so user sees the deploy hash
